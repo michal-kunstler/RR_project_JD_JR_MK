@@ -1,0 +1,491 @@
+---
+title: "Documentation"
+date: today
+format: 
+  html:
+    toc: true
+    toc-depth: 2
+    smooth-scroll: true
+number-sections: true
+number-depth: 2
+title-block-banner: true
+execute:
+  echo: fenced
+---
+
+## Source work results 
+
+In order to reproduce the source work of 2021 for classes in the subject of Econometrics, the results of which are as follows: 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results='hide' }
+#| include: false
+library(gap)
+library(readxl)
+library(corrplot)
+library(lmtest)
+library(tseries)
+library(stargazer)
+library(sandwich)
+library("viridis")
+
+#wczytanie danych do modelu
+
+baza <- read_excel("Source files/baza_noworodki.xlsx")
+
+#przegląd danych
+head(baza,10)
+summary(baza)
+
+#badanie korelacji
+
+korelacja <- cor(baza, use = "pairwise.complete.obs")
+p.mat <- cor.mtest(baza)
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+wykres_korelacji <- corrplot(korelacja, method="color", col=col(200), type="upper",
+                             addCoef.col = "black", tl.col="black", tl.srt=45,
+                             p.mat = p.mat$p, sig.level = 0.01, insig = "blank", diag=FALSE)
+#widoczny brak korelacji zmiennej objasnianej ze zmiennymi populacja oraz labor_force, a same te zmienne
+#są ze soba skorelowane (0,98), stad wniosek o wyrzuceniu zmiennej labor_force z modelu 
+# wyrzucam także zmienna death_rate ze wzgledu na brak korelacji ze zmienną objaśnianą 
+
+#przechodze do badania rozkladow zmiennych w modelu
+hist(baza$ochrona_zdrowia) #do zastanowienia
+hist(baza$GDPpc) #logarytm
+hist(baza$GDP) #logarytm
+hist(baza$populacja) #logarytm
+hist(baza$noworodki) #logarytm
+hist(baza$urban_pop) #raczej ok 
+hist(baza$turysci) #logarytm
+hist(baza$HIV) #ok, dyskretna
+
+#zmienne o rozkladach skosnych zlogarytmuje i przetestuje na normalnosc
+baza$l_ochrona_zdrowia <- log(baza$ochrona_zdrowia)
+shapiro.test(baza$ochrona_zdrowia) #nie
+shapiro.test(baza$l_ochrona_zdrowia) #poprawa
+
+
+baza$l_noworodki <- log(baza$noworodki)
+shapiro.test(baza$noworodki) #nie
+shapiro.test(baza$l_noworodki) #nie
+hist(baza$l_noworodki)
+
+baza$l_GDP <- log(baza$GDP)
+shapiro.test(baza$GDP) #nie
+shapiro.test(baza$l_GDP) #tak
+
+baza$l_GDPpc <- log(baza$GDPpc)
+shapiro.test(baza$GDPpc) #nie
+shapiro.test(baza$l_GDPpc) #poprawa
+
+baza$l_populacja <- log(baza$populacja)
+shapiro.test(baza$populacja) #nie
+shapiro.test(baza$l_populacja) #ok
+
+
+
+baza$l_urban_pop <- log(baza$urban_pop)
+shapiro.test(baza$urban_pop)
+shapiro.test(baza$l_urban_pop) # zecydowanie nie, szukam innych przeksztalcen
+baza$up2 <- baza$urban_pop**2
+baza$lup2 <- log(baza$up2)
+hist(baza$lup2)
+shapiro.test(baza$lup2) #niestety zadna z metod nie poprawia rozkladu normalnego, dlatego pozostane przy pierwotnej postaci
+
+
+baza$l_turysci <- log(baza$turysci)
+shapiro.test(baza$turysci) #nie
+shapiro.test(baza$l_turysci) #prawie ok 
+
+#po przeksztalceniach w bazie do modelu pozostawiam zmienne
+baza = subset(baza,select=c(l_noworodki, l_ochrona_zdrowia, l_GDP, l_GDPpc, l_populacja,l_turysci,urban_pop, HIV ))
+head(baza,10)
+
+#histogramy zmiennych wchodzacych do modelu 
+hist(baza$l_noworodki)
+hist(baza$l_ochrona_zdrowia)
+hist(baza$l_GDP)
+hist(baza$l_GDPpc)
+hist(baza$l_populacja)
+hist(baza$l_turysci)
+hist(baza$urban_pop) 
+hist(baza$HIV)
+
+
+#pierwsza postac modelu
+model = lm( l_noworodki~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza)
+plot(model, which = 4)
+summary(model)
+
+
+baza1 = baza[-c(12,33,115),]
+model1 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza1)
+plot(model1, which = 4)
+summary(model1)
+
+baza2 = baza1[-c(68,110,124),]
+model2 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza2)
+plot(model2, which = 4)
+summary(model2)
+
+
+baza3 = baza2[-c(103,109,124),]
+model3 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza3)
+plot(model3, which = 4)
+summary(model3)
+
+
+
+baza4 = baza3[-c(39,98),]
+model4 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza4)
+plot(model4, which = 4)
+summary(model4)
+
+
+baza5 = baza4[-c(110),]
+model5 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza5)
+plot(model5, which = 1)
+plot(model5, which = 2)
+plot(model5, which = 3)
+plot(model5, which = 4)
+plot(model5, which = 5)
+summary(model5)
+
+
+
+shapiro.test(baza5$l_ochrona_zdrowia)#ok
+shapiro.test(baza5$l_GDP)#ok
+shapiro.test(baza5$l_GDPpc)#nie
+shapiro.test(baza5$l_populacja)#ok
+shapiro.test(baza5$l_noworodki)#ok
+shapiro.test(baza5$l_turysci)#ok
+shapiro.test(baza5$urban_pop)
+
+
+
+
+final1 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci + urban_pop  + HIV, data = baza5)
+summary(final1)
+
+final2 = lm(l_noworodki ~ l_GDP + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci   + HIV, data = baza5)
+summary(final2)
+
+final3 = lm(l_noworodki ~  + l_GDPpc + l_populacja + l_ochrona_zdrowia + l_turysci  + HIV, data = baza5)
+summary(final3)
+
+
+
+#ostateczna wersja modelu 
+
+#czas na testy 
+
+resettest(final3, type = 'regressor')  #brak podstaw do odrzucenia H0 o prawidlowej formie funkcyjnej
+
+plot(final3$residuals) 
+hist(final3$residuals)
+shapiro.test(final3$residuals) #ok 
+jarque.bera.test(final3$residuals)#ok brak podstaw do odrzucenia H0 o normalnosci reszt
+bptest(final3) #ok brak podstaw do odrzucenia H0 o homoskedastycznosci reszt
+bgtest(final3)#ok brak podstaw do odrzucenia H0 o braku autokorelacji reszt
+
+
+#publikacja
+
+stargazer(final1, final2, final3,  type="text", dep.var.labels = c("smiertelnosc wsrod noworodkow"),
+              covariate.labels = c("log GDP", "log GDP per capita","log populacji", 
+                                  "log wydatkow panstwa na ochrone zdrowia",
+                                  "log liczby turystow", "% ludzi mieszkajacych w miastach",
+                                   "czy kraj ma probelm z HIV"),
+                                    out="publikacja.html")
+
+
+```
+```{r, echo = FALSE}
+
+stargazer(final3,  type="text", dep.var.labels = c("smiertelnosc wsrod noworodkow"),
+          covariate.labels = c("log GDP", "log GDP per capita","log populacji", 
+                               "log wydatkow panstwa na ochrone zdrowia",
+                               "log liczby turystow", "% ludzi mieszkajacych w miastach",
+                               "czy kraj ma probelm z HIV"),
+          out="publikacja.html")
+```
+
+## Reproduced work results  
+in the first step, we decided to reproduce the code 1:1 in Python so as to try to get as identical results as possible
+
+```{python}
+#| include: false
+import os
+import pandas as pd
+import numpy as np
+from scipy import stats
+from sklearn.preprocessing import PowerTransformer
+import statsmodels.api as sm
+import seaborn as sns
+import matplotlib.pyplot as plt
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.stats.stattools import durbin_watson
+from statsmodels.compat import lzip
+import statsmodels.stats.api as sms
+import warnings
+warnings.filterwarnings("ignore")
+
+```
+
+The detailed code can be found in our repository in the file https://github.com/michal-kunstler/RR_project_JD_JR_MK/python_replication.ipynb. 
+In this document, we will focus only on the most important conclusions of the analysis. 
+
+```{python}
+#| include: false
+os.getcwd()
+base = pd.read_excel("Source files/baza_noworodki.xlsx")
+cols_to_transform = ["ochrona_zdrowia", "GDPpc", "GDP", "populacja", "noworodki", "urban_pop", "turysci"]
+
+# Apply the log transformation
+for col in cols_to_transform:
+    base["l_" + col] = np.log(base[col])
+
+# Dropping columns after transformation
+base = base.drop(columns=cols_to_transform)
+
+base1 = base.drop([12,33,115], axis=0)
+base2 = base1.drop([68,110,124], axis=0)
+base3 = base2.drop([103,109], axis=0)
+base4 = base3.drop([39,98], axis=0)
+
+
+#model once again
+X = base4.drop(columns=['l_noworodki'])
+X = sm.add_constant(X)
+y = base4['l_noworodki']
+
+model = sm.OLS(y, X)
+results = model.fit()
+
+base5 = base4
+
+#Reproducing source R code 
+
+X_final1 = base5[['l_GDP', 'l_GDPpc', 'l_populacja', 'l_ochrona_zdrowia', 'l_turysci', 'l_urban_pop', 'HIV']]
+X_final2 = base5[['l_GDP', 'l_GDPpc', 'l_populacja', 'l_ochrona_zdrowia', 'l_turysci', 'HIV']]
+X_final3 = base5[['l_GDPpc', 'l_populacja', 'l_ochrona_zdrowia', 'l_turysci', 'HIV']]
+y_final = base5['l_noworodki']
+
+X_final1 = sm.add_constant(X_final1)
+X_final2 = sm.add_constant(X_final2)
+X_final3 = sm.add_constant(X_final3)
+
+model_final1 = sm.OLS(y_final, X_final1)
+model_final2 = sm.OLS(y_final, X_final2)
+model_final3 = sm.OLS(y_final, X_final3)
+results_final1 = model_final1.fit()
+results_final2 = model_final2.fit()
+results_final3 = model_final3.fit()
+
+```
+
+```{python, echo = FALSE }
+
+results_final3.summary()
+
+```
+
+```{python, echo = FALSE}
+#| include: false
+Pythoncoef = results_final3.params["l_ochrona_zdrowia"]
+
+
+```
+
+```{r, echo= FALSE, warning=FALSE}
+
+#| include: false
+library(reticulate)
+Rcoef <- round(coef(final3)["l_ochrona_zdrowia"],2)
+Diff <- round(abs(py$Pythoncoef - Rcoef),2)
+
+```
+
+
+Despite our efforts, it was not possible to perfectly replicate the estimated results. We believe this is most likely due to the source study's method of removing rows based on indices from the Residuals vs Leverage plot. When transcribing the code to Python and utilizing the get_influence function, the code points to indices of completely different observations than those in the original code. We decided to stick with the removal of the original observation indices.
+
+After conducting a procedure from the general to the specific, we obtained exactly the same significant variables as in the original model in R. Nevertheless, the estimates of the Beta parameters differ slightly. The largest observed difference is for the variable l_ochrona zdrowia (l_ochrona_z) -> **`r Rcoef` ** (original, R) vs **`r round(py$Pythoncoef,2)` ** (Python) which is absolute differnce equal to **`r Diff` **. In other cases, the differences are not large, and the consistency in the direction of estimates between R and Python is also encouraging.
+
+
+## Enhanced approach to the topic 
+
+Upon acquiring advanced econometric and programming skills during our master's studies, we decided to enhance the code written over two years ago, aiming for maximum automation and improved econometric accuracy.  
+
+Please note that our primary intention was not to perfect this model in terms of the approach taken, such as using superior or more recent data, or potentially more suitable models like panel data models. Our primary objective in devising this approach was automation and reproducibility of results, and we primarily directed our attention towards these aspects.
+
+
+```{python}
+#| include: false
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import statistics as stats
+from scipy import stats
+from scipy.stats import shapiro
+from pandas_profiling import ProfileReport
+import warnings
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import statsmodels.stats.api as sms
+from stargazer.stargazer import Stargazer
+from statsmodels.compat import lzip
+from statsmodels.stats import diagnostic as ssd
+from scipy import stats as scys
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+os.getcwd()
+df = pd.read_excel("Source files/baza_noworodki.xlsx")
+Xx = df.copy()
+```
+
+In the initial step, we computed the Variance Inflation Factor (VIF) and eliminated collinear variables (VIF > 10) from the model.  
+
+Despite the VIF coefficient being relatively low, we considered that the values for GDP and GDP per capita should not both remain in the model. Consequently, we also removed the GDP variable.
+
+```{python}
+def calculate_vif(Xx):
+    vif_data = pd.DataFrame()
+    vif_data["feature"] = Xx.columns
+    vif_data["VIF"] = [variance_inflation_factor(Xx.values, i)
+                            for i in range(len(Xx.columns))]
+    lider = vif_data.sort_values(by = 'VIF', ascending= False).iloc[0,]
+    print(lider, vif_data)
+    if (lider.VIF > 10):
+        col = lider.feature
+        Xx = Xx.drop(columns= [col])
+        calculate_vif(Xx)
+    
+    
+vif_data = calculate_vif(Xx)
+
+print(vif_data)
+df = df.drop(columns = ['ochrona_zdrowia',  'labor_force'])
+df = df.drop(columns = ['GDP'])
+
+```
+
+Subsequently, prior to the random logarithmization of numerical variables, we calculated the values of the Shapiro-Wilk test for variables both before and after logarithmization. We retained in our database those variables for which the p-value was higher (comparing before versus after logarithmization).
+
+```{python}
+
+# shapiro test for pre-log variables
+statss = []
+for column in df.columns:
+  stat, p = shapiro(df[column])
+  print('Shapiro-Wilk for {}: {:.3f}, p-value: {:.3f}'.format(column, stat, p))
+  statss.append(p)
+
+# shapiro test for logged variables
+def logsy(df, cols=[]):
+    for col in cols:
+        df['log_'+str(col)] = np.log(df[col])
+        df = df.drop(columns=[col])
+    return df
+    
+
+print(f'-'*50)
+
+df1 = df.copy()
+cols = df1.columns
+df1 = logsy(df1,cols)
+
+statss1 = []
+for column in df1.columns:
+  stat, p = shapiro(df1[column])
+  print('Shapiro-Wilk for {}: {:.3f}, p-value: {:.3f}'.format(column, stat, p))
+  statss1.append(p)
+
+```
+
+
+
+```{python, echo = FALSE}
+#| include: false
+df3 = df.copy()
+for i in range(len(statss)):
+    x = (statss1[i] - statss[i])
+    if(x>0):
+        df3.iloc[:,i] = df1.iloc[:,i]
+        df3 = df3.rename({df3.columns[i]:df1.columns[i]}, axis = 'columns')
+        print(df1.columns[i],x )
+    
+df3['HIV'] = df['HIV'] 
+df3 = df3.drop(columns=['log_HIV'])
+```
+
+Following that, we created code which automatically carries out a general-to-specific procedure for the processed database, thereby deriving the final form of the model:
+
+```{python}
+models = {}
+models_summary = {}
+drop_order = ['Intercept']
+def GTS_iter(df):
+    X = df3.drop(columns=['log_noworodki'])
+    y = df3['log_noworodki']
+
+    def model_creator(X,y):
+        string = ''
+        for col in X.columns:
+            string = string + str(col) + '+'
+        return str(y.name)+'~' + string[:-1]
+    
+    model_formula = model_creator(X,y)
+    X["log_noworodki"] = y
+    model= smf.ols(model_formula , X).fit()
+
+    return(model)
+
+model = GTS_iter(df3)
+models['model_1'] = model
+models_summary['model_1'] = model.summary()
+i = 1
+
+while model.pvalues.max() > 0.05:
+    i+=1
+    max_pvalue = model.pvalues.idxmax()
+    if((max_pvalue == 'Intercept')):
+        if((model.pvalues.sort_values(ascending = False)[1] > 0.05)):
+            max_pvalue = model.pvalues.sort_values(ascending = False).index[1]
+        else:
+            break
+    df3 = df3.drop(columns=[max_pvalue], axis = 1)
+    drop_order.append(max_pvalue)
+    model = GTS_iter(df3)
+    models_summary[f'model_{i}'] = model.summary()
+    models[f'model_{i}'] = model
+    
+for col in df3.drop(columns=["log_noworodki"]).columns:    
+    drop_order.append(col)
+
+```
+
+For which, we subsequently conducted diagnostic tests and due to the issue of heteroskedasticity of residuals in the model, we applied a robust covariance matrix:
+
+```{python}
+### diagnostics
+
+final_model = list(models.values())[-1]
+name = ["Lagrange multiplier statistic", "p-value", "f-value", "f p-value"]
+test = sms.het_breuschpagan(final_model.resid, final_model.model.exog)
+print(str('-')*50,'\nBP TEST:\n' , lzip(name, test))
+print(str('-')*50,'\nRESET TEST:\n' ,ssd.linear_reset(final_model, power=3, test_type='fitted', use_f=False, cov_type='nonrobust', cov_kwargs=None))
+print(str('-')*50,'\nJarque Bera TEST:\n' ,scys.jarque_bera(final_model.resid))
+x = sns.histplot(final_model.resid, log_scale=False, kde=True, color='maroon')
+x.set_title('Residuals histogram', fontdict={'fontsize':20})
+plt.show()
+
+### Roboust matrix 
+cov_matrix = sm.stats.sandwich_covariance.cov_white_simple(final_model, use_correction=True)
+
+robust_results = final_model.get_robustcov_results(cov_type='HC1')
+
+print(final_model.summary())
+print(robust_results.summary())
+```
+
+## TO BE CONTINUED
