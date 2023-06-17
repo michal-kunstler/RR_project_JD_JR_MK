@@ -6,6 +6,10 @@ format:
     toc: true
     toc-depth: 2
     smooth-scroll: true
+    theme: 
+      light: pulse
+      dark: slate
+    anchor-sections: true
 number-sections: true
 number-depth: 2
 title-block-banner: true
@@ -13,9 +17,9 @@ execute:
   echo: fenced
 ---
 
-## Source work results 
+## Source work results
 
-In order to reproduce the source work of 2021 for classes in the subject of Econometrics, the results of which are as follows: 
+In order to reproduce the source work of 2021 for classes in the subject of Econometrics, the results of which are as follows:
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE, results='hide' }
 #| include: false
@@ -199,6 +203,7 @@ stargazer(final1, final2, final3,  type="text", dep.var.labels = c("smiertelnosc
 
 
 ```
+
 ```{r, echo = FALSE}
 
 stargazer(final3,  type="text", dep.var.labels = c("smiertelnosc wsrod noworodkow"),
@@ -209,11 +214,13 @@ stargazer(final3,  type="text", dep.var.labels = c("smiertelnosc wsrod noworodko
           out="publikacja.html")
 ```
 
-## Reproduced work results  
+## Reproduced work results
+
 in the first step, we decided to reproduce the code 1:1 in Python so as to try to get as identical results as possible
 
 ```{python}
 #| include: false
+
 import os
 import pandas as pd
 import numpy as np
@@ -231,12 +238,12 @@ warnings.filterwarnings("ignore")
 
 ```
 
-The detailed code can be found in our repository in the file https://github.com/michal-kunstler/RR_project_JD_JR_MK/python_replication.ipynb. 
-In this document, we will focus only on the most important conclusions of the analysis. 
+The detailed code can be found in our repository in the file https://github.com/michal-kunstler/RR_project_JD_JR_MK/python_replication.ipynb. In this document, we will focus only on the most important conclusions of the analysis.
 
 ```{python}
 #| include: false
 os.getcwd()
+
 base = pd.read_excel("Source files/baza_noworodki.xlsx")
 cols_to_transform = ["ochrona_zdrowia", "GDPpc", "GDP", "populacja", "noworodki", "urban_pop", "turysci"]
 
@@ -305,21 +312,19 @@ Diff <- round(abs(py$Pythoncoef - Rcoef),2)
 
 ```
 
-
 Despite our efforts, it was not possible to perfectly replicate the estimated results. We believe this is most likely due to the source study's method of removing rows based on indices from the Residuals vs Leverage plot. When transcribing the code to Python and utilizing the get_influence function, the code points to indices of completely different observations than those in the original code. We decided to stick with the removal of the original observation indices.
 
-After conducting a procedure from the general to the specific, we obtained exactly the same significant variables as in the original model in R. Nevertheless, the estimates of the Beta parameters differ slightly. The largest observed difference is for the variable l_ochrona zdrowia (l_ochrona_z) -> **`r Rcoef` ** (original, R) vs **`r round(py$Pythoncoef,2)` ** (Python) which is absolute differnce equal to **`r Diff` **. In other cases, the differences are not large, and the consistency in the direction of estimates between R and Python is also encouraging.
+After conducting a procedure from the general to the specific, we obtained exactly the same significant variables as in the original model in R. Nevertheless, the estimates of the Beta parameters differ slightly. The largest observed difference is for the variable l_ochrona zdrowia (l_ochrona_z) -\> **`r Rcoef`** (original, R) vs **`r round(py$Pythoncoef,2)`** (Python) which is absolute differnce equal to **`r Diff`** . In other cases, the differences are not large, and the consistency in the direction of estimates between R and Python is also encouraging.
 
+## Enhanced approach to the topic
 
-## Enhanced approach to the topic 
-
-Upon acquiring advanced econometric and programming skills during our master's studies, we decided to enhance the code written over two years ago, aiming for maximum automation and improved econometric accuracy.  
+Upon acquiring advanced econometric and programming skills during our master's studies, we decided to enhance the code written over two years ago, aiming for maximum automation and improved econometric accuracy.
 
 Please note that our primary intention was not to perfect this model in terms of the approach taken, such as using superior or more recent data, or potentially more suitable models like panel data models. Our primary objective in devising this approach was automation and reproducibility of results, and we primarily directed our attention towards these aspects.
 
-
 ```{python}
 #| include: false
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -343,9 +348,9 @@ df = pd.read_excel("Source files/baza_noworodki.xlsx")
 Xx = df.copy()
 ```
 
-In the initial step, we computed the Variance Inflation Factor (VIF) and eliminated collinear variables (VIF > 10) from the model.  
+In the initial step, we computed the Variance Inflation Factor (VIF) and eliminated collinear variables, with VIF over 10 from the model.
 
-Despite the VIF coefficient being relatively low, we considered that the values for GDP and GDP per capita should not both remain in the model. Consequently, we also removed the GDP variable.
+Despite the VIF coefficient being relatively low, we considered that the values for GDP and GDP per capita should not both remain in the model, as they are most likelu highly correlated. Consequently, we also removed the GDP variable.
 
 ```{python}
 def calculate_vif(Xx):
@@ -369,7 +374,7 @@ df = df.drop(columns = ['GDP'])
 
 ```
 
-Subsequently, prior to the random logarithmization of numerical variables, we calculated the values of the Shapiro-Wilk test for variables both before and after logarithmization. We retained in our database those variables for which the p-value was higher (comparing before versus after logarithmization).
+Subsequently, prior to the logarithmization of numerical variables, we calculated the values of the Shapiro-Wilk test for variables both before and after logarithmization. We retained in our database those variables for which the p-value was higher (comparing before versus after logarithmization). This is done, because the Shapiro-Wilk test verifies how close a given distribution is to a normal distribution. We assume, that the higher the p-value the closer the distribution to a normal distribution, with our goal being to achieve a distribution as close to normal as possible.
 
 ```{python}
 
@@ -401,8 +406,6 @@ for column in df1.columns:
   statss1.append(p)
 
 ```
-
-
 
 ```{python, echo = FALSE}
 #| include: false
@@ -466,6 +469,9 @@ for col in df3.drop(columns=["log_noworodki"]).columns:
 
 For which, we subsequently conducted diagnostic tests and due to the issue of heteroskedasticity of residuals in the model, we applied a robust covariance matrix:
 
+
+
+
 ```{python}
 ### diagnostics
 
@@ -488,4 +494,25 @@ print(final_model.summary())
 print(robust_results.summary())
 ```
 
-## TO BE CONTINUED
+
+Below, results for the models can be found.
+
+::: {.panel-tabset}
+
+## restults for the inital model
+
+```{python, echo = FALSE}
+print(final_model.summary())
+```
+
+## results for the model with robust VCov matrix applied
+
+```{python, echo = FALSE}
+print(robust_results.summary())
+```
+
+:::
+
+The initial testing of the model revealed that there is a problem with heteroskedasticity. The result from the BP test is a p-value of \<5%, meaning that there is sufficient evidence to reject the null hypothesis stating that the model is homeostatic. Furthermore, RESET test returns a p-value of \<5%, meaning that the functional form of the model is not proper. This suggests that the relationship modeled here is probably not linear hence the model based on OLS is of limited use. The Jarque-Bera test returns a p-value over 5%, meaning that the distribution of the residuals is normal or close to normal.
+
+Furthermore, after applying a robust VCov matrix, all of the estimates are individually significant and the model overall is significant (as shown by the p-value of the F-test being below 5%).
