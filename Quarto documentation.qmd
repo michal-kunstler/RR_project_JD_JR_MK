@@ -17,6 +17,19 @@ execute:
   echo: fenced
 ---
 
+## Introduction
+
+Following research is devoted to replication and enhancement of the econometric 
+project within new programming language. The original project, we have taken
+under consideration, was an econometric research work of Jarosław Leski from 
+2021 devoted to explaining infant mortality rate across countries. In our 
+novel approach, we have revised the code and rewritten it into Python. Following
+document is structured as followed: first section presents the results of the 
+model obtained in the original approach, followed by second section devoted to
+results of the project replication in Python and thorough explanation of source
+of differences. Finally third section covers enhancements of the model, 
+containing script automating the process of model variables selection.
+
 ## Source work results
 
 In order to reproduce the source work of 2021 for classes in the subject of Econometrics, the results of which are as follows:
@@ -516,3 +529,13 @@ print(robust_results.summary())
 The initial testing of the model revealed that there is a problem with heteroskedasticity. The result from the BP test is a p-value of \<5%, meaning that there is sufficient evidence to reject the null hypothesis stating that the model is homeostatic. Furthermore, RESET test returns a p-value of \<5%, meaning that the functional form of the model is not proper. This suggests that the relationship modeled here is probably not linear hence the model based on OLS is of limited use. The Jarque-Bera test returns a p-value over 5%, meaning that the distribution of the residuals is normal or close to normal.
 
 Furthermore, after applying a robust VCov matrix, all of the estimates are individually significant and the model overall is significant (as shown by the p-value of the F-test being below 5%).
+
+## Summary
+
+The research above depicts the Python reconciliation of the econometric project
+of explaining the infant mortality rate across countries. The obtained results 
+present slight difference in the model metrics, caused by the usage of different 
+function to identify the rows to be excluded, based on Residuals vs Leverage 
+plot. Nevertheless, the process of variables selection resulted with same set
+of predictors used for final model. The research was extended with proposed 
+enhancements and automatic script from section 3.
