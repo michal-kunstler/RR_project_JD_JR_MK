@@ -3,6 +3,7 @@ title: "Documentation"
 date: today
 format: 
   html:
+    embed-resources: true
     toc: true
     toc-depth: 2
     smooth-scroll: true
